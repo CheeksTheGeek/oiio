@@ -87,7 +87,7 @@ import numpy as np
 import os
 
 def tiles_write():
-    filename = "test_tile_output.tif"  # Assume tiff supports tiles
+    filename = "tile_output.tif"  # Assume tiff supports tiles
     xres, yres, channels, tilesize = 128, 128, 3, 64
     out = oiio.ImageOutput.create(filename)
     
@@ -125,6 +125,50 @@ def tiles_write():
 # END-imageoutput-tilewriting
 
 
+# Import necessary libraries from OpenImageIO and NumPy
+import OpenImageIO as oiio
+import numpy as np
+import os
+
+# BEGIN-imageoutput-cropwindow
+def crop_window():
+    filename = "crop_window.tif"
+    fullwidth, fullheight = 640, 480
+    cropwidth, cropheight, channels = 16, 16, 3
+    xorigin, yorigin = 32, 128
+    pixels = np.zeros((cropheight, cropwidth, channels), dtype="uint8")  # Assume data is already populated
+    
+    spec = oiio.ImageSpec(cropwidth, cropheight, channels, oiio.UINT8)
+    spec.full_x = 0
+    spec.full_y = 0
+    spec.full_width = fullwidth
+    spec.full_height = fullheight
+    spec.x = xorigin
+    spec.y = yorigin
+    
+    out = oiio.ImageOutput.create(filename)
+    out.open(filename, spec)
+    
+    z = 0  # Always zero for 2D images
+    for y in range(yorigin, yorigin + cropheight):
+        out.write_scanline(y, z, oiio.UINT8, pixels[y - yorigin])
+    
+    out.close()
+    
+    # Verification
+    inp = oiio.ImageInput.open(filename)
+    read_pixels = np.empty_like(pixels)
+    for y in range(yorigin, yorigin + cropheight):
+        inp.read_scanline(y, z, oiio.UINT8, read_pixels[y - yorigin])
+    assert np.array_equal(pixels, read_pixels)
+    
+    inp.close()
+    
+    # Cleanup
+    os.remove(filename)
+# END-imageoutput-cropwindow
+
+
 
 if __name__ == '__main__':
     # Each example function needs to get called here, or it won't execute
@@ -132,3 +176,5 @@ if __name__ == '__main__':
     simple_write()
     scanlines_write()
     tiles_write()
+    crop_window()
+

@@ -79,7 +79,7 @@ void scanlines_write()
 // BEGIN-imageoutput-tilewriting
 void tiles_write()
 {
-    const std::string filename = "test_tile_output.tif"; // Assume tiff supports tiles
+    const std::string filename = "tile_output.tif"; // Assume tiff supports tiles
     const int xres = 128, yres = 128, channels = 3, tilesize = 64;
     std::unique_ptr<ImageOutput> out = ImageOutput::create(filename);
     if (!out->supports("tiles")) {
@@ -124,12 +124,54 @@ void tiles_write()
 // END-imageoutput-tilewriting
 
 
+// BEGIN-imageoutput-cropwindow
+void crop_window()
+{
+    const std::string filename = "crop_window.tif";
+    const int fullwidth = 640, fullheight = 480;
+    const int cropwidth = 16, cropheight = 16, channels = 3;
+    const int xorigin = 32, yorigin = 128;
+    unsigned char pixels[cropwidth * cropheight * channels];  // Assume data is already populated
+    
+    std::unique_ptr<ImageOutput> out = ImageOutput::create(filename);
+    ImageSpec spec(cropwidth, cropheight, channels, TypeDesc::UINT8);
+    spec.full_x = 0;
+    spec.full_y = 0;
+    spec.full_width = fullwidth;
+    spec.full_height = fullheight;
+    spec.x = xorigin;
+    spec.y = yorigin;
+    out->open(filename, spec);
+    
+    int z = 0;  // Always zero for 2D images
+    for (int y = yorigin; y < yorigin + cropheight; ++y) {
+        out->write_scanline(y, z, TypeDesc::UINT8, &pixels[(y - yorigin) * cropwidth * channels]);
+    }
+    out->close();
+    
+    // Verification
+    std::unique_ptr<ImageInput> in = ImageInput::create(filename);
+    in->open(filename, spec);
+    unsigned char read_pixels[cropwidth * cropheight * channels];
+    for (int y = yorigin; y < yorigin + cropheight; ++y) {
+        in->read_scanline(y, z, TypeDesc::UINT8, read_pixels);
+        OIIO_CHECK_EQUAL(std::memcmp(&pixels[(y - yorigin) * cropwidth * channels], read_pixels, cropwidth * channels), 0);
+    }
+    in->close();
+    
+    // Cleanup
+    std::remove(filename.c_str());
+}
+// END-imageoutput-cropwindow
+
+
 
 int main(int /*argc*/, char** /*argv*/)
 {
     simple_write();
     scanlines_write();
     tiles_write();
+    crop_window();
     return 0;
 }
 s
