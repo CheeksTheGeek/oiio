@@ -170,6 +170,42 @@ def crop_window():
 
 
 
+# BEGIN-imageoutput-metadata
+
+import OpenImageIO as oiio
+import os
+
+def metadata_test():
+    filename = "test_metadata_output.tif"
+    width, length, channels = 640, 480, 3
+    format = "uint8"
+
+    # Create ImageSpec and set metadata
+    spec = oiio.ImageSpec(width, length, channels, format)
+    spec.channelnames = ("R", "G", "B")
+    spec.alpha_channel = -1
+    spec.z_channel = -1
+    spec.attribute("oiio:ColorSpace", "scene_linear")
+
+    # Open file, write metadata
+    out = oiio.ImageOutput.create(filename)
+    out.open(filename, spec)
+    out.close()
+
+    # Verification
+    inp = oiio.ImageInput.open(filename)
+    read_spec = inp.spec()
+    assert read_spec.get_string_attribute("oiio:ColorSpace") == "scene_linear"
+    assert read_spec.channelnames == spec.channelnames
+
+    # Cleanup
+    os.remove(filename)
+
+
+
+# END-imageoutput-metadata
+
+
 if __name__ == '__main__':
     # Each example function needs to get called here, or it won't execute
     # as part of the test.
@@ -177,4 +213,5 @@ if __name__ == '__main__':
     scanlines_write()
     tiles_write()
     crop_window()
+    metadata_test()
 

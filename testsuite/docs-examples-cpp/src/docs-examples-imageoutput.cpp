@@ -164,6 +164,38 @@ void crop_window()
 }
 // END-imageoutput-cropwindow
 
+// BEGIN-imageoutput-metadata
+
+void metadata_test() {
+    const std::string filename = "test_metadata_output.tif";
+    int width = 640, length = 480, channels = 3;
+    TypeDesc format = TypeDesc::UINT8;
+
+    // Create ImageSpec and set metadata
+    ImageSpec spec(width, length, channels, format);
+    spec.channelnames.assign({ "R", "G", "B" });
+    spec.alpha_channel = -1;
+    spec.z_channel = -1;
+    spec.attribute("oiio:ColorSpace", "scene_linear");
+
+    // Open file, write metadata
+    std::unique_ptr<ImageOutput> out = ImageOutput::create(filename);
+    out->open(filename, spec);
+    out->close();
+
+    // Verification
+    std::unique_ptr<ImageInput> in = ImageInput::create(filename);
+    const ImageSpec &read_spec = in->spec();
+    OIIO_CHECK_EQUAL(read_spec.get_string_attribute("oiio:ColorSpace"), "scene_linear");
+    OIIO_CHECK_EQUAL(read_spec.channelnames, spec.channelnames);
+
+    // Cleanup
+    std::remove(filename.c_str());
+}
+
+
+
+// END-imageoutput-metadata
 
 
 int main(int /*argc*/, char** /*argv*/)
@@ -172,6 +204,7 @@ int main(int /*argc*/, char** /*argv*/)
     scanlines_write();
     tiles_write();
     crop_window();
+    metadata_test();
     return 0;
 }
 s
