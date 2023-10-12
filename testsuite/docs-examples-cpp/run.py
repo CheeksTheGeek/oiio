@@ -21,7 +21,7 @@ for chapter in [ "imageioapi", "imageoutput", "imageinput", "writingplugins",
 
 outputs = [
     # Outputs from the ImageOutput chapter:
-    "simple.tif", "scanlines.tif",
+    "simple.tif", "scanlines.tif", "tile_output.tif", "crop_window.tif",
     # Outputs from the ImageInput chapter:
 
     # ... etc ... other chapters ...
