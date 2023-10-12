@@ -12,6 +12,7 @@
 
 // BEGIN-imageoutput-example1
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/unittest.h>
 using namespace OIIO;
 
 void example1()
@@ -75,6 +76,52 @@ void scanlines_write()
     out->close();
 // END-imageoutput-scanlines
 }
+// BEGIN-imageoutput-tilewriting
+void tiles_write()
+{
+    const std::string filename = "test_tile_output.tif"; // Assume tiff supports tiles
+    const int xres = 128, yres = 128, channels = 3, tilesize = 64;
+    std::unique_ptr<ImageOutput> out = ImageOutput::create(filename);
+    if (!out->supports("tiles")) {
+        std::cerr << "Tiles are not supported for this image format." << std::endl;
+        return;
+    }
+
+    ImageSpec spec(xres, yres, channels, TypeDesc::UINT8);
+    spec.tile_width = tilesize;
+    spec.tile_height = tilesize;
+    out->open(filename, spec);
+
+    unsigned char tile[tilesize * tilesize * channels];
+    int z = 0;   // Always zero for 2D images
+
+    // Generating data in tile, for simplicity filling it with a constant value.
+    std::fill_n(tile, tilesize * tilesize * channels, 255);  
+
+    for (int y = 0; y < yres; y += tilesize) {
+        for (int x = 0; x < xres; x += tilesize) {
+            out->write_tile(x, y, z, TypeDesc::UINT8, tile);
+        }
+    }
+    out->close();
+
+    // Now to verify the data
+    std::unique_ptr<ImageInput> in = ImageInput::create(filename);
+    in->open(filename, spec);
+
+    unsigned char read_tile[tilesize * tilesize * channels];
+    for (int y = 0; y < yres; y += tilesize) {
+        for (int x = 0; x < xres; x += tilesize) {
+            in->read_tile(x, y, z, TypeDesc::UINT8, read_tile);
+            OIIO_CHECK_EQUAL(std::memcmp(tile, read_tile, tilesize * tilesize * channels), 0);
+        }
+    }
+    in->close();
+
+    // Cleanup
+    std::remove(filename.c_str());
+}
+// END-imageoutput-tilewriting
 
 
 
@@ -82,5 +129,7 @@ int main(int /*argc*/, char** /*argv*/)
 {
     simple_write();
     scanlines_write();
+    tiles_write();
     return 0;
 }
+s
