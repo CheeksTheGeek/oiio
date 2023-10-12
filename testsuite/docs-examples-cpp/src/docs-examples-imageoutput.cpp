@@ -165,7 +165,7 @@ void crop_window()
 // END-imageoutput-cropwindow
 
 // BEGIN-imageoutput-metadata
-void metadata_test() {
+void metadata_write()
     const std::string filename = "test_metadata_output.tif";
     int width = 640, length = 480, channels = 3;
     TypeDesc format = TypeDesc::UINT8;
@@ -239,7 +239,7 @@ int main(int /*argc*/, char** /*argv*/)
     scanlines_write();
     tiles_write();
     crop_window();
-    metadata_test();
+    metadata_write();
     multi_image_file_write();
     return 0;
 }
