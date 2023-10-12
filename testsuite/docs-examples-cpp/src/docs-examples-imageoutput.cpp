@@ -165,7 +165,6 @@ void crop_window()
 // END-imageoutput-cropwindow
 
 // BEGIN-imageoutput-metadata
-
 void metadata_test() {
     const std::string filename = "test_metadata_output.tif";
     int width = 640, length = 480, channels = 3;
@@ -192,10 +191,46 @@ void metadata_test() {
     // Cleanup
     std::remove(filename.c_str());
 }
-
-
-
 // END-imageoutput-metadata
+
+
+// BEGIN-imageoutput-multiimagefile
+
+void multi_image_file_write() {
+    const std::string filename = "multi_image_file.tif";
+    int nsubimages = 2;
+    ImageSpec specs[] = { ImageSpec(640, 480, 3, TypeDesc::UINT8), 
+                          ImageSpec(800, 600, 3, TypeDesc::UINT8) };
+    unsigned char pixels[][3] = { {255, 0, 0}, {0, 255, 0} };
+
+    auto out = ImageOutput::create(filename);
+    if (nsubimages > 1 && (!out->supports("multiimage") || !out->supports("appendsubimage"))) {
+        std::cerr << "Does not support appending of subimages\n";
+        return;
+    }
+
+    out->open(filename, nsubimages, specs);
+    for (int s = 0; s < nsubimages; ++s) {
+        if (s > 0)
+            out->open(filename, specs[s], ImageOutput::AppendSubimage);
+        out->write_image(TypeDesc::UINT8, &pixels[s]);
+    }
+    out->close();
+
+    // Verification
+    auto in = ImageInput::create(filename);
+    for (int s = 0; s < nsubimages; ++s) {
+        const ImageSpec &read_spec = in->spec(s);
+        OIIO_CHECK_EQUAL(read_spec.width, specs[s].width);
+        OIIO_CHECK_EQUAL(read_spec.height, specs[s].height);
+    }
+
+    // Cleanup
+    std::remove(filename.c_str());
+}
+
+
+// END-imageoutput-multiimagefile
 
 
 int main(int /*argc*/, char** /*argv*/)
@@ -205,6 +240,7 @@ int main(int /*argc*/, char** /*argv*/)
     tiles_write();
     crop_window();
     metadata_test();
+    multi_image_file_write();
     return 0;
 }
 s

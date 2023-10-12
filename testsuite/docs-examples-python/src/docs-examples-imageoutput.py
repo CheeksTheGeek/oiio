@@ -200,10 +200,42 @@ def metadata_test():
 
     # Cleanup
     os.remove(filename)
-
-
-
 # END-imageoutput-metadata
+
+
+# BEGIN-imageoutput-multiimagefile
+import OpenImageIO as oiio
+import os
+
+def multi_image_file_write():
+    filename = "multi_image_file.tif"
+    nsubimages = 2
+    specs = (oiio.ImageSpec(640, 480, 3, "uint8"), oiio.ImageSpec(800, 600, 3, "uint8"))
+    pixels = (b'\xff\x00\x00', b'\x00\xff\x00')
+
+    out = oiio.ImageOutput.create(filename)
+    if nsubimages > 1 and (not out.supports("multiimage") or not out.supports("appendsubimage")):
+        print("Does not support appending of subimages")
+        return
+
+    out.open(filename, nsubimages, specs)
+    for s in range(nsubimages):
+        if s > 0:
+            out.open(filename, specs[s], "AppendSubimage")
+        out.write_image(pixels[s])
+    out.close()
+
+    # Verification
+    inp = oiio.ImageInput.open(filename)
+    for s in range(nsubimages):
+        read_spec = inp.spec(s)
+        assert read_spec.width == specs[s].width
+        assert read_spec.height == specs[s].height
+
+    # Cleanup
+    os.remove(filename)
+
+# END-imageoutput-multiimagefile
 
 
 if __name__ == '__main__':
@@ -214,4 +246,5 @@ if __name__ == '__main__':
     tiles_write()
     crop_window()
     metadata_test()
+    multi_image_file_write()
 
